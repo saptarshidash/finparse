@@ -1,0 +1,13 @@
+services:
+  app:
+    image: python:3.11-slim
+    container_name: finparse-app
+    working_dir: /app/phonepe-parser
+    volumes:
+      - ./:/app
+    command: >
+      sh -c "pip install --no-cache-dir -r requirements.txt &&
+             python main.py --host 0.0.0.0 --port 8000 --kafka-config /app/phonepe-parser/kafka.properties"
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

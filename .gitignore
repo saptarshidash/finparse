@@ -1,0 +1,35 @@
+# Python virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python caches and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python tool caches and coverage output
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# IDE project files
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local data and temp files
+*.db
+*.tmp
+*.swp
+*.properties
+
+# Debug output
+phonepe-parser/debug_logs/

@@ -1,0 +1,296 @@
+[
+  {
+    "category": "Income/Credits",
+    "keywords": [
+      "salary",
+      "payroll",
+      "interest credited",
+      "cashback",
+      "refund",
+      "reversal",
+      "received from employer",
+      "credit interest",
+      "dividend"
+    ]
+  },
+  {
+    "category": "Investments",
+    "keywords": [
+      "mutual fund",
+      "sip",
+      "zerodha",
+      "groww",
+      "upstox",
+      "angel one",
+      "paytm money",
+      "coin",
+      "stocks",
+      "demat",
+      "nps",
+      "ppf",
+      "elss"
+    ]
+  },
+  {
+    "category": "Loan/EMI",
+    "keywords": [
+      "emi",
+      "loan",
+      "bajaj finserv",
+      "home credit",
+      "kissht",
+      "lendingkart",
+      "moneyview",
+      "navi",
+      "credit card bill",
+      "card payment"
+    ]
+  },
+  {
+    "category": "Rent/Household",
+    "keywords": [
+      "rent",
+      "maintenance",
+      "society",
+      "apartment",
+      "flat",
+      "owner",
+      "landlord",
+      "housing"
+    ]
+  },
+  {
+    "category": "Bills/Utilities",
+    "keywords": [
+      "electricity",
+      "water bill",
+      "gas bill",
+      "piped gas",
+      "cylinder",
+      "utility",
+      "bill paid",
+      "broadband",
+      "landline",
+      "wifi",
+      "internet",
+      "postpaid",
+      "prepaid",
+      "recharge",
+      "mobile recharge",
+      "dth",
+      "fastag",
+      "bescom",
+      "tneb",
+      "mseb",
+      "bses",
+      "wbsedcl"
+    ]
+  },
+  {
+    "category": "Insurance",
+    "keywords": [
+      "insurance",
+      "lic",
+      "policybazaar",
+      "premium",
+      "hdfc ergo",
+      "icici lombard",
+      "star health",
+      "niva bupa",
+      "acko"
+    ]
+  },
+  {
+    "category": "Government/Taxes",
+    "keywords": [
+      "gst",
+      "income tax",
+      "municipal tax",
+      "challan",
+      "passport",
+      "traffic fine",
+      "court fee",
+      "govt",
+      "government",
+      "bbmp",
+      "tmc",
+      "gram panchayat"
+    ]
+  },
+  {
+    "category": "Fuel",
+    "keywords": [
+      "petrol",
+      "diesel",
+      "fuel",
+      "indian oil",
+      "bharat petroleum",
+      "bpcl",
+      "hpcl",
+      "shell",
+      "nayara"
+    ]
+  },
+  {
+    "category": "Transport/Travel",
+    "keywords": [
+      "uber",
+      "ola",
+      "rapido",
+      "metro",
+      "irctc",
+      "makemytrip",
+      "goibibo",
+      "cleartrip",
+      "yatra",
+      "redbus",
+      "indigo",
+      "air india",
+      "vistara",
+      "spicejet",
+      "parking",
+      "toll"
+    ]
+  },
+  {
+    "category": "Food/Dining",
+    "keywords": [
+      "zomato",
+      "swiggy",
+      "restaurant",
+      "cafe",
+      "coffee",
+      "tea",
+      "bakery",
+      "dineout",
+      "eatclub",
+      "food",
+      "juice",
+      "barbeque nation"
+    ]
+  },
+  {
+    "category": "Groceries",
+    "keywords": [
+      "grocery",
+      "supermarket",
+      "kirana",
+      "mart",
+      "bhandar",
+      "provision store",
+      "blinkit",
+      "zepto",
+      "instamart",
+      "bigbasket",
+      "jiomart",
+      "dmart",
+      "more retail",
+      "spencers",
+      "grofers"
+    ]
+  },
+  {
+    "category": "Healthcare",
+    "keywords": [
+      "pharmacy",
+      "medical",
+      "hospital",
+      "clinic",
+      "doctor",
+      "lab",
+      "diagnostic",
+      "apollo",
+      "medplus",
+      "1mg",
+      "pharmeasy",
+      "practo"
+    ]
+  },
+  {
+    "category": "Education",
+    "keywords": [
+      "school",
+      "college",
+      "tuition",
+      "fees",
+      "exam",
+      "course",
+      "byju",
+      "unacademy",
+      "coursera",
+      "udemy",
+      "upgrad",
+      "whitehat"
+    ]
+  },
+  {
+    "category": "Shopping",
+    "keywords": [
+      "amazon",
+      "flipkart",
+      "myntra",
+      "ajio",
+      "meesho",
+      "nykaa",
+      "tatacliq",
+      "shopsy",
+      "store",
+      "mall",
+      "fashion"
+    ]
+  },
+  {
+    "category": "Entertainment/Subscriptions",
+    "keywords": [
+      "netflix",
+      "amazon prime",
+      "prime video",
+      "hotstar",
+      "jiohotstar",
+      "spotify",
+      "youtube premium",
+      "google play",
+      "apple media",
+      "bookmyshow",
+      "sony liv",
+      "zee5",
+      "gaana",
+      "wynk"
+    ]
+  },
+  {
+    "category": "Wallet Transfers",
+    "keywords": [
+      "paytm wallet",
+      "mobikwik",
+      "freecharge",
+      "amazon pay",
+      "phonepe wallet",
+      "gift card",
+      "wallet"
+    ]
+  },
+  {
+    "category": "ATM/Cash",
+    "keywords": [
+      "atm",
+      "cash withdrawal",
+      "cash deposit",
+      "cashback at pos",
+      "self cash"
+    ]
+  },
+  {
+    "category": "Bank Transfer",
+    "keywords": [
+      "imps",
+      "neft",
+      "rtgs",
+      "bank transfer",
+      "self transfer",
+      "to bank",
+      "from bank",
+      "account transfer"
+    ]
+  }
+]
