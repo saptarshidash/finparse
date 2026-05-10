@@ -231,7 +231,7 @@ async def parse_statement_async(
 async def reprocess_from_log(
     background_tasks: BackgroundTasks,
     log_file: UploadFile = File(...),
-    userId: str = Form(..., pattern=r"^\d{10}$"),
+    mobile_number: str = Form(..., pattern=r"^\d{10}$"),
 ):
     try:
         get_kafka_producer()
@@ -253,7 +253,7 @@ async def reprocess_from_log(
     return {
         "status": "Accepted",
         "message": "Log file is being reprocessed. Transactions will be streamed to Kafka.",
-        "userId": userId,
+        "mobile_number": mobile_number,
         "job_id": effective_job_id
     }
 
