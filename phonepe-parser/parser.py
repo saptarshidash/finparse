@@ -22,7 +22,14 @@ TXN_PATTERN = re.compile(
 )
 
 NORMALIZE_TEXT_PATTERN = re.compile(r"[^a-z0-9]+")
-AMOUNT_PATTERN = re.compile(r"(?<![\d:])(?:₹|INR)?\s*([\d,]+\.\d{2})(?!\d)")
+AMOUNT_WITH_CURRENCY_PATTERN = re.compile(
+    r"(?:₹|INR)\s*([\d,]+(?:\.\d{1,2})?)",
+    re.IGNORECASE,
+)
+AMOUNT_AFTER_TYPE_PATTERN = re.compile(
+    r"\b(?:DEBIT|CREDIT)\b\s*(?:₹|INR)?\s*([\d,]+(?:\.\d{1,2})?)",
+    re.IGNORECASE,
+)
 TIME_PATTERN = re.compile(r"\b(\d{1,2}:\d{2}\s*(?:AM|PM))\b", re.IGNORECASE)
 UPI_HANDLE_PATTERN = re.compile(
     r"\b[a-z0-9][a-z0-9._-]{1,}@(okaxis|okhdfcbank|oksbi|okicici|ybl|ibl|axl|apl|paytm)\b",
@@ -72,7 +79,10 @@ def contains_any_keyword(text: str, keywords: Sequence[str]) -> bool:
     return False
 
 def extract_amount(block_text: str) -> float:
-    amount_matches = AMOUNT_PATTERN.findall(block_text)
+    amount_matches = AMOUNT_WITH_CURRENCY_PATTERN.findall(block_text)
+
+    if not amount_matches:
+        amount_matches = AMOUNT_AFTER_TYPE_PATTERN.findall(block_text)
 
     if not amount_matches:
         raise ValueError(f"Could not extract amount from transaction block: {block_text!r}")
@@ -203,6 +213,77 @@ def write_page_text_debug_log(
     logger.info(f"Created debug extraction log at {log_path}")
     return log_path
 
+
+def parse_transactions_from_text(full_text: str) -> Dict[str, Any]:
+    if not full_text.strip():
+        raise ValueError("No text could be extracted from the PDF. It might be a scanned image.")
+
+    parsed_transactions = []
+    matches = list(TXN_PATTERN.finditer(full_text))
+
+    for i, match in enumerate(matches):
+        date_str, details, txn_type = match.groups()
+
+        start_idx = match.start()
+        end_idx = matches[i + 1].start() if i + 1 < len(matches) else len(full_text)
+        transaction_block = full_text[start_idx:end_idx]
+
+        block_clean = " ".join(transaction_block.split())
+        time_str = extract_time(block_clean)
+
+        try:
+            iso_date = parse_statement_date(date_str, time_str)
+        except ValueError:
+            logger.warning(f"Failed to parse date string: {date_str}. Using raw.")
+            iso_date = date_str
+
+        amount_clean = extract_amount(transaction_block)
+        entity = extract_entity(block_clean, details)
+        category = categorize(block_clean)
+        utr_number = extract_utr(block_clean)
+
+        parsed_transactions.append({
+            "date": iso_date,
+            "entity": entity,
+            "amount": amount_clean,
+            "type": txn_type.upper(),
+            "category": category,
+            "utr_number": utr_number,
+            "raw_details": block_clean
+        })
+
+    if not parsed_transactions:
+        return {
+            "transactions": [],
+            "summary": {
+                "total_transactions": 0,
+                "total_debit": 0.0,
+                "total_credit": 0.0
+            }
+        }
+
+    df = pd.DataFrame(parsed_transactions)
+    total_txns = len(df)
+    total_debit = df[df["type"] == "DEBIT"]["amount"].sum()
+    total_credit = df[df["type"] == "CREDIT"]["amount"].sum()
+
+    summary = {
+        "total_transactions": int(total_txns),
+        "total_debit": round(float(total_debit), 2),
+        "total_credit": round(float(total_credit), 2)
+    }
+
+    return {
+        "transactions": parsed_transactions,
+        "summary": summary
+    }
+
+
+def parse_debug_log_content(log_text: str) -> Dict[str, Any]:
+    page_sections = re.findall(r"Page\s+\d+\n(.*?)(?=\n----\nPage\s+\d+\n|\Z)", log_text, flags=re.DOTALL)
+    full_text = "\n".join(section.strip() for section in page_sections if section.strip())
+    return parse_transactions_from_text(full_text)
+
 def parse_pdf_content(file_bytes: bytes, password: str = None, job_id: str | None = None) -> Dict[str, Any]:
     text_data: List[str] = []
     page_text_data: List[tuple[int, str | None]] = []
@@ -234,69 +315,4 @@ def parse_pdf_content(file_bytes: bytes, password: str = None, job_id: str | Non
         write_page_text_debug_log(job_id, page_text_data)
 
     full_text = "\n".join(text_data)
-
-    if not full_text.strip():
-        raise ValueError("No text could be extracted from the PDF. It might be a scanned image.")
-
-    parsed_transactions = []
-
-    matches = list(TXN_PATTERN.finditer(full_text))
-
-    for i, match in enumerate(matches):
-        date_str, details, txn_type = match.groups()
-
-        start_idx = match.start()
-        end_idx = matches[i+1].start() if i + 1 < len(matches) else len(full_text)
-        transaction_block = full_text[start_idx:end_idx]
-
-        block_clean = " ".join(transaction_block.split())
-        time_str = extract_time(block_clean)
-
-        try:
-            iso_date = parse_statement_date(date_str, time_str)
-        except ValueError:
-            logger.warning(f"Failed to parse date string: {date_str}. Using raw.")
-            iso_date = date_str
-
-        amount_clean = extract_amount(transaction_block)
-
-        entity = extract_entity(block_clean, details)
-        category = categorize(block_clean)
-        utr_number = extract_utr(block_clean)
-
-        parsed_transactions.append({
-            "date": iso_date,
-            "entity": entity,
-            "amount": amount_clean,
-            "type": txn_type.upper(),
-            "category": category,
-            "utr_number": utr_number,
-            "raw_details": block_clean 
-        })
-
-    if not parsed_transactions:
-        return {
-            "transactions": [],
-            "summary": {
-                "total_transactions": 0,
-                "total_debit": 0.0,
-                "total_credit": 0.0
-            }
-        }
-
-    df = pd.DataFrame(parsed_transactions)
-
-    total_txns = len(df)
-    total_debit = df[df['type'] == 'DEBIT']['amount'].sum()
-    total_credit = df[df['type'] == 'CREDIT']['amount'].sum()
-
-    summary = {
-        "total_transactions": int(total_txns),
-        "total_debit": round(float(total_debit), 2),
-        "total_credit": round(float(total_credit), 2)
-    }
-
-    return {
-        "transactions": parsed_transactions,
-        "summary": summary
-    }
+    return parse_transactions_from_text(full_text)
