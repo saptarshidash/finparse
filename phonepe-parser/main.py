@@ -5,7 +5,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTasks
-from parser import parse_pdf_content, get_debug_log_dir
+from parser import parse_pdf_content, get_debug_log_dir, parse_debug_log_content
 
 try:
     from confluent_kafka.cimpl import Producer, KafkaException
@@ -154,44 +154,51 @@ def delivery_report(err, msg):
 def process_and_publish(file_bytes: bytes, password: str, job_id: str):
 
     try:
-        kafka_producer = get_kafka_producer()
         logger.info(f"Job {job_id}: Starting PDF parsing...")
         result = parse_pdf_content(file_bytes, password, job_id=job_id)
-        transactions = result.get("transactions", [])
-
-        logger.info(f"Job {job_id}: Found {len(transactions)} transactions. Publishing to Kafka...")
-
-        for txn in transactions:
-
-            txn['job_id'] = job_id
-
- 
-            kafka_producer.produce(
-                topic=KAFKA_TOPIC,
-                key=job_id.encode('utf-8'), 
-                value=json.dumps(txn).encode('utf-8'),
-                callback=delivery_report
-            )
- 
-            kafka_producer.poll(0)
-
-        final_message = {
-            "type": "JOB_COMPLETED",
-            "job_id": job_id,
-            "total_records": len(transactions),
-        }
-
-        kafka_producer.produce(
-            topic=KAFKA_TOPIC,
-            key=job_id.encode('utf-8'),   
-            value=json.dumps(final_message).encode('utf-8'),
-            callback=delivery_report
-        )
-        kafka_producer.flush()
-        logger.info(f"Job {job_id}: Successfully published all transactions.")
+        publish_transactions(result, job_id)
 
     except Exception as e:
         logger.error(f"Job {job_id}: Failed to process or publish - {str(e)}")
+
+def publish_transactions(result: dict[str, Any], job_id: str) -> None:
+    kafka_producer = get_kafka_producer()
+    transactions = result.get("transactions", [])
+
+    logger.info(f"Job {job_id}: Found {len(transactions)} transactions. Publishing to Kafka...")
+
+    for txn in transactions:
+        txn["job_id"] = job_id
+        kafka_producer.produce(
+            topic=KAFKA_TOPIC,
+            key=job_id.encode("utf-8"),
+            value=json.dumps(txn).encode("utf-8"),
+            callback=delivery_report
+        )
+        kafka_producer.poll(0)
+
+    final_message = {
+        "type": "JOB_COMPLETED",
+        "job_id": job_id,
+        "total_records": len(transactions),
+    }
+    kafka_producer.produce(
+        topic=KAFKA_TOPIC,
+        key=job_id.encode("utf-8"),
+        value=json.dumps(final_message).encode("utf-8"),
+        callback=delivery_report
+    )
+    kafka_producer.flush()
+    logger.info(f"Job {job_id}: Successfully published all transactions.")
+
+
+def process_log_and_publish(log_text: str, job_id: str) -> None:
+    try:
+        logger.info(f"Job {job_id}: Starting log reprocessing...")
+        result = parse_debug_log_content(log_text)
+        publish_transactions(result, job_id)
+    except Exception as e:
+        logger.error(f"Job {job_id}: Failed to reprocess from log or publish - {str(e)}")
 
 
 @app.post("/parse-async", tags=["Parsing"])
@@ -217,6 +224,36 @@ async def parse_statement_async(
         "status": "Accepted",
         "message": "File is being processed. Transactions will be streamed to Kafka.",
         "job_id": job_id
+    }
+
+
+@app.post("/reprocess-from-log", tags=["Parsing"])
+async def reprocess_from_log(
+    background_tasks: BackgroundTasks,
+    log_file: UploadFile = File(...),
+    job_id: str | None = Form(default=None),
+):
+    try:
+        get_kafka_producer()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    if not log_file.filename.lower().endswith(".log"):
+        raise HTTPException(status_code=400, detail="Only .log files are supported for reprocessing.")
+
+    log_bytes = await log_file.read()
+    try:
+        log_text = log_bytes.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Log file must be UTF-8 encoded.") from exc
+
+    effective_job_id = job_id or str(uuid.uuid4())
+    background_tasks.add_task(process_log_and_publish, log_text, effective_job_id)
+
+    return {
+        "status": "Accepted",
+        "message": "Log file is being reprocessed. Transactions will be streamed to Kafka.",
+        "job_id": effective_job_id
     }
 
 
