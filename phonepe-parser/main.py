@@ -231,7 +231,7 @@ async def parse_statement_async(
 async def reprocess_from_log(
     background_tasks: BackgroundTasks,
     log_file: UploadFile = File(...),
-    mobile_number: str = Form(..., pattern=r"^\d{10}$"),
+    job_id: str | None = Form(default=None),
 ):
     try:
         get_kafka_producer()
@@ -247,13 +247,12 @@ async def reprocess_from_log(
     except UnicodeDecodeError as exc:
         raise HTTPException(status_code=400, detail="Log file must be UTF-8 encoded.") from exc
 
-    effective_job_id = str(uuid.uuid4())
+    effective_job_id = job_id or str(uuid.uuid4())
     background_tasks.add_task(process_log_and_publish, log_text, effective_job_id)
 
     return {
         "status": "Accepted",
         "message": "Log file is being reprocessed. Transactions will be streamed to Kafka.",
-        "mobile_number": mobile_number,
         "job_id": effective_job_id
     }
 
