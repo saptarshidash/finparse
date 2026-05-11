@@ -22,14 +22,19 @@ TXN_PATTERN = re.compile(
 )
 
 NORMALIZE_TEXT_PATTERN = re.compile(r"[^a-z0-9]+")
-AMOUNT_WITH_CURRENCY_PATTERN = re.compile(
-    r"(?:₹|INR)\s*([\d,]+(?:\.\d{1,2})?)",
+AMOUNT_ON_TYPE_LINE_PATTERN = re.compile(
+    r"\b(?:DEBIT|CREDIT)\b[^\S\r\n]*(?:₹|INR)?[^\S\r\n]*([\d,]+(?:\.\d{1,2})?)\b",
     re.IGNORECASE,
 )
-AMOUNT_AFTER_TYPE_PATTERN = re.compile(
-    r"\b(?:DEBIT|CREDIT)\b\s*(?:₹|INR)?\s*([\d,]+(?:\.\d{1,2})?)",
+AMOUNT_ON_TRANSACTION_ID_LINE_PATTERN = re.compile(
+    r"\bTransaction ID\b.*?\b([\d,]+(?:\.\d{1,2})?)\b",
     re.IGNORECASE,
 )
+CURRENCY_AMOUNT_PATTERN = re.compile(
+    r"(?:₹|INR)[^\S\r\n]*([\d,]+(?:\.\d{1,2})?)\b",
+    re.IGNORECASE,
+)
+DECIMAL_AMOUNT_PATTERN = re.compile(r"(?<![\d:])([\d,]+\.\d{1,2})(?!\d)")
 TIME_PATTERN = re.compile(r"\b(\d{1,2}:\d{2}\s*(?:AM|PM))\b", re.IGNORECASE)
 UPI_HANDLE_PATTERN = re.compile(
     r"\b[a-z0-9][a-z0-9._-]{1,}@(okaxis|okhdfcbank|oksbi|okicici|ybl|ibl|axl|apl|paytm)\b",
@@ -79,15 +84,31 @@ def contains_any_keyword(text: str, keywords: Sequence[str]) -> bool:
     return False
 
 def extract_amount(block_text: str) -> float:
-    amount_matches = AMOUNT_WITH_CURRENCY_PATTERN.findall(block_text)
+    lines = [line.strip() for line in block_text.splitlines() if line.strip()]
 
-    if not amount_matches:
-        amount_matches = AMOUNT_AFTER_TYPE_PATTERN.findall(block_text)
+    for line in lines:
+        match = AMOUNT_ON_TYPE_LINE_PATTERN.search(line)
+        if match:
+            return float(match.group(1).replace(",", ""))
 
-    if not amount_matches:
-        raise ValueError(f"Could not extract amount from transaction block: {block_text!r}")
+    for line in lines:
+        if "transaction id" not in line.lower():
+            continue
 
-    return float(amount_matches[-1].replace(",", ""))
+        match = AMOUNT_ON_TRANSACTION_ID_LINE_PATTERN.search(line)
+        if match:
+            return float(match.group(1).replace(",", ""))
+
+    for line in lines:
+        match = CURRENCY_AMOUNT_PATTERN.search(line)
+        if match:
+            return float(match.group(1).replace(",", ""))
+
+    amount_matches = DECIMAL_AMOUNT_PATTERN.findall(block_text)
+    if amount_matches:
+        return float(amount_matches[-1].replace(",", ""))
+
+    raise ValueError(f"Could not extract amount from transaction block: {block_text!r}")
 
 def extract_time(block_text: str) -> str | None:
     match = TIME_PATTERN.search(block_text)
